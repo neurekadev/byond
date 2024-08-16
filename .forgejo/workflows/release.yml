@@ -5,27 +5,26 @@ on:
   schedule:
     - cron: "0 * * * *"
 
-permissions:
-  contents: read
-  packages: write
-
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: code.neureka.dev
+  REGISTRY_USERNAME: ${{ github.actor }}
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
+  REGISTRY_IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   release:
     name: Release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
       
-      - name: Login to the Docker Registry
-        uses: docker/login-action@v3
+      - name: Login to the Container Registry
+        uses: actions/docker-login@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ env.REGISTRY_PASSWORD }}
 
       - name: Check for the latest stable version of BYOND
         id: stable-version-check
@@ -58,7 +57,7 @@ jobs:
             exit $RESPONSE
           fi
       
-      - name: Check if the stable release was already published to the Docker Registry
+      - name: Check if the stable release was already published to the Container Registry
         id: stable-release-check
         continue-on-error: true
         env:
@@ -66,7 +65,7 @@ jobs:
           BYOND_MAJOR_VERSION: ${{ steps.stable-version-check.outputs.BYOND_MAJOR_VERSION }}
           BYOND_MINOR_VERSION: ${{ steps.stable-version-check.outputs.BYOND_MINOR_VERSION }}
         run: |
-          echo "⏳ Checking if the stable release was already published to the Docker Registry..."
+          echo "⏳ Checking if the stable release was already published to the Container Registry..."
           docker manifest inspect ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.BYOND_VERSION }}
           if [ $? -eq 0 ]; then
             echo "✔️ An existing tag was found! A new docker image will not be built."
@@ -74,7 +73,7 @@ jobs:
             echo "❌ An existing tag was not found."
           fi
       
-      - name: Build the stable Docker image and publish to the Docker Registry
+      - name: Build the stable Docker image and publish to the Container Registry
         uses: docker/build-push-action@v5
         if: ${{ steps.stable-binaries-check.outcome == 'success' && steps.stable-release-check.outcome == 'failure' }}
         env:
@@ -124,7 +123,7 @@ jobs:
             exit $RESPONSE
           fi
       
-      - name: Check if the beta release was already published to the Docker Registry
+      - name: Check if the beta release was already published to the Container Registry
         id: beta-release-check
         continue-on-error: true
         env:
@@ -132,7 +131,7 @@ jobs:
           BYOND_MAJOR_VERSION: ${{ steps.beta-version-check.outputs.BYOND_MAJOR_VERSION }}
           BYOND_MINOR_VERSION: ${{ steps.beta-version-check.outputs.BYOND_MINOR_VERSION }}
         run: |
-          echo "⏳ Checking if the beta release was already published to the Docker Registry..."
+          echo "⏳ Checking if the beta release was already published to the Container Registry..."
           docker manifest inspect ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.BYOND_VERSION }}
           if [ $? -eq 0 ]; then
             echo "✔️ An existing tag was found! A new docker image will not be built."
@@ -140,7 +139,7 @@ jobs:
             echo "❌ An existing tag was not found."
           fi
       
-      - name: Build the beta Docker image and publish to the Docker Registry
+      - name: Build the beta Docker image and publish to the Container Registry
         uses: docker/build-push-action@v5
         if: ${{ steps.beta-binaries-check.outcome == 'success' && steps.beta-release-check.outcome == 'failure' }}
         env:
