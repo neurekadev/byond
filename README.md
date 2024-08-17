@@ -1,10 +1,5 @@
 # BYOND
 
-[![Version](https://img.shields.io/docker/v/neurekadev/byond?style=flat-square&sort=semver)](https://hub.docker.com/r/neurekadev/byond)
-[![Docker Pulls](https://img.shields.io/docker/pulls/neurekadev/byond?style=flat-square)](https://hub.docker.com/r/neurekadev/byond)
-[![Image Size](https://img.shields.io/docker/image-size/neurekadev/byond?style=flat-square)](https://hub.docker.com/r/neurekadev/byond)
-[![License](https://img.shields.io/github/license/neurekadev/byond?style=flat-square)](https://github.com/neurekadev/byond/blob/main/LICENSE.md)
-
 A docker image for building and hosting games made in the BYOND Engine.
 
 ## Tags
@@ -29,7 +24,7 @@ docker run --detach \
   --volume /opt/game:/opt/game \
   --publish 1337:1337 \
   --restart unless-stopped \
-  ghcr.io/neurekadev/byond:latest DreamDaemon /opt/game/game.dmb -ports 1337
+  code.neureka.dev/byond/byond:latest DreamDaemon /opt/game/game.dmb -ports 1337
 ```
 
 ### Docker Compose
@@ -39,7 +34,7 @@ docker run --detach \
 ```docker
 services:
   byond:
-    image: ghcr.io/neurekadev/byond:latest
+    image: code.neureka.dev/byond/byond:latest
     container_name: "game"
     command: "DreamDaemon /opt/game/game.dmb -ports 1337"
     volumes:
@@ -58,5 +53,5 @@ Example usage to build your projects.
 ```docker
 docker run --rm \
   --volume /opt/game:/opt/game \
-  ghcr.io/neurekadev/byond:latest DreamMaker /opt/game/game.dme
+  code.neureka.dev/byond/byond:latest DreamMaker /opt/game/game.dme
 ```
