@@ -70,7 +70,7 @@ jobs:
           BYOND_MINOR_VERSION: ${{ steps.stable-version-check.outputs.BYOND_MINOR_VERSION }}
         run: |
           echo "⏳ Checking if the stable release was already published to the Container Registry..."
-          docker manifest inspect ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.BYOND_VERSION }}
+          docker manifest inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:${{ env.BYOND_VERSION }}
           if [ $? -eq 0 ]; then
             echo "✔️ An existing tag was found! A new docker image will not be built."
           else
@@ -91,9 +91,9 @@ jobs:
             BYOND_MAJOR=${{ env.BYOND_MAJOR_VERSION }}
             BYOND_MINOR=${{ env.BYOND_MINOR_VERSION }}
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.BYOND_VERSION }}
-            ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.BYOND_MAJOR_VERSION }}
-            ${{ env.REGISTRY }}/${{ github.repository }}:latest
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:${{ env.BYOND_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:${{ env.BYOND_MAJOR_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:latest
 
       # BYOND Beta Releases
       - name: Check for the latest beta version of BYOND
@@ -136,7 +136,7 @@ jobs:
           BYOND_MINOR_VERSION: ${{ steps.beta-version-check.outputs.BYOND_MINOR_VERSION }}
         run: |
           echo "⏳ Checking if the beta release was already published to the Container Registry..."
-          docker manifest inspect ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.BYOND_VERSION }}
+          docker manifest inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:${{ env.BYOND_VERSION }}
           if [ $? -eq 0 ]; then
             echo "✔️ An existing tag was found! A new docker image will not be built."
           else
@@ -157,6 +157,6 @@ jobs:
             BYOND_MAJOR=${{ env.BYOND_MAJOR_VERSION }}
             BYOND_MINOR=${{ env.BYOND_MINOR_VERSION }}
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.BYOND_VERSION }}
-            ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.BYOND_MAJOR_VERSION }}
-            ${{ env.REGISTRY }}/${{ github.repository }}:beta
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:${{ env.BYOND_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:${{ env.BYOND_MAJOR_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:beta
