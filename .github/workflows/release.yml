@@ -40,7 +40,13 @@ jobs:
           echo "BYOND_VERSION="$BYOND_VERSION"" >> $GITHUB_OUTPUT
           echo "BYOND_MAJOR_VERSION="$BYOND_MAJOR_VERSION"" >> $GITHUB_OUTPUT
           echo "BYOND_MINOR_VERSION="$BYOND_MINOR_VERSION"" >> $GITHUB_OUTPUT
-          echo "✔️ The latest stable version of BYOND: ${BYOND_VERSION}"
+
+          if [ ! -z $BYOND_VERSION ]; then
+            echo "✔️ The latest stable version of BYOND: ${BYOND_VERSION}"
+          else
+            echo "❌ The latest stable version of BYOND could not be found."
+            exit 1
+          fi
 
       - name: Check for stable linux release binaries
         id: stable-binaries-check
@@ -108,7 +114,13 @@ jobs:
           echo "BYOND_VERSION="$BYOND_VERSION"" >> $GITHUB_OUTPUT
           echo "BYOND_MAJOR_VERSION="$BYOND_MAJOR_VERSION"" >> $GITHUB_OUTPUT
           echo "BYOND_MINOR_VERSION="$BYOND_MINOR_VERSION"" >> $GITHUB_OUTPUT
-          echo "✔️ The latest beta version of BYOND: ${BYOND_VERSION}"
+
+          if [ ! -z $BYOND_VERSION ]; then
+            echo "✔️ The latest beta version of BYOND: ${BYOND_VERSION}"
+          else
+            echo "❌ The latest beta version of BYOND could not be found."
+            exit 1
+          fi
 
       - name: Check for beta linux release binaries
         id: beta-binaries-check
