@@ -32,6 +32,7 @@ jobs:
 
       - name: Check for the latest stable version of BYOND
         id: stable-version-check
+        continue-on-error: true
         run: |
           echo "⏳ Checking for the latest stable version of BYOND..."
           BYOND_VERSION="$(sed -n 1p <(curl https://secure.byond.com/download/version.txt))"
@@ -106,6 +107,7 @@ jobs:
       # BYOND Beta Releases
       - name: Check for the latest beta version of BYOND
         id: beta-version-check
+        continue-on-error: true
         run: |
           echo "⏳ Checking for the latest beta version of BYOND..."
           BYOND_VERSION="$(sed -n 2p <(curl https://secure.byond.com/download/version.txt))"
