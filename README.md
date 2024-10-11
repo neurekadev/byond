@@ -1,6 +1,6 @@
 # BYOND
 
-A docker image for building and hosting games made in the BYOND Engine.
+A docker image for building and hosting games made in the BYOND engine.
 
 ## Tags
 
