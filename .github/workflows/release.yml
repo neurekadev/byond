@@ -44,6 +44,7 @@ jobs:
 
       - name: Check for stable linux release binaries
         id: stable-binaries-check
+        if: ${{ steps.stable-version-check.outcome == 'success' }}
         continue-on-error: true
         env:
           BYOND_VERSION: ${{ steps.stable-version-check.outputs.BYOND_VERSION }}
@@ -63,6 +64,7 @@ jobs:
 
       - name: Check if the stable release was already published to the Container Registry
         id: stable-release-check
+        if: ${{ steps.stable-binaries-check.outcome == 'success' }}
         continue-on-error: true
         env:
           BYOND_VERSION: ${{ steps.stable-version-check.outputs.BYOND_VERSION }}
@@ -110,6 +112,7 @@ jobs:
 
       - name: Check for beta linux release binaries
         id: beta-binaries-check
+        if: ${{ steps.beta-version-check.outcome == 'success' }}
         continue-on-error: true
         env:
           BYOND_VERSION: ${{ steps.beta-version-check.outputs.BYOND_VERSION }}
@@ -129,6 +132,7 @@ jobs:
 
       - name: Check if the beta release was already published to the Container Registry
         id: beta-release-check
+        if: ${{ steps.beta-binaries-check.outcome == 'success' }}
         continue-on-error: true
         env:
           BYOND_VERSION: ${{ steps.beta-version-check.outputs.BYOND_VERSION }}
