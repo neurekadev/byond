@@ -1,0 +1,24 @@
+name: build-byond-version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Full BYOND version to build.
+        required: true
+        type: string
+
+jobs:
+  setup-build-byond-version:
+    name: "Setup Build: BYOND Version"
+    uses: forgejo/workflows/.forgejo/workflows/build-byond-version.yaml@main
+    with:
+      version: ${{ inputs.version }}
+      context: .
+      file: Dockerfile
+      platforms: linux/386
+      push: true
+    secrets:
+      REGISTRY: ${{ secrets.REGISTRY }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
