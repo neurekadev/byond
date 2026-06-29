@@ -36,6 +36,12 @@ jobs:
           username: ${{ env.REGISTRY_USERNAME }}
           password: ${{ env.REGISTRY_PASSWORD }}
 
+      - name: Set up QEMU
+        uses: actions/docker-setup-qemu@v4
+
+      - name: Set up Buildx
+        uses: actions/docker-setup-buildx@v4
+
       - name: Check for the latest stable version of BYOND
         id: stable-version-check
         continue-on-error: true
@@ -106,8 +112,10 @@ jobs:
           BYOND_MINOR_VERSION: ${{ steps.stable-version-check.outputs.BYOND_MINOR_VERSION }}
         with:
           context: .
+          platforms: linux/386
           push: true
           build-args: |
+            APP_VERSION=${{ env.BYOND_VERSION }}
             BYOND_MAJOR=${{ env.BYOND_MAJOR_VERSION }}
             BYOND_MINOR=${{ env.BYOND_MINOR_VERSION }}            
           tags: |
@@ -186,8 +194,10 @@ jobs:
           BYOND_MINOR_VERSION: ${{ steps.beta-version-check.outputs.BYOND_MINOR_VERSION }}
         with:
           context: .
+          platforms: linux/386
           push: true
           build-args: |
+            APP_VERSION=${{ env.BYOND_VERSION }}
             BYOND_MAJOR=${{ env.BYOND_MAJOR_VERSION }}
             BYOND_MINOR=${{ env.BYOND_MINOR_VERSION }}            
           tags: |

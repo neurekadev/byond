@@ -76,10 +76,10 @@ if [ -n "${PUID:-}" ] && [ "$PUID" != "0" ] && [ "$PGID" != "0" ]; then
   chown -R app:app /app
 
   if [ "$#" -gt 0 ]; then
-    exec gosu app "$@"
+    exec setpriv --reuid "$PUID" --regid "$PGID" --clear-groups -- "$@"
   fi
 
-  exec gosu app "$0" --byond-run
+  exec setpriv --reuid "$PUID" --regid "$PGID" --clear-groups -- "$0" --byond-run
 fi
 
 chown -R 0:0 /app
