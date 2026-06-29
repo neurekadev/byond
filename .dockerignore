@@ -1,0 +1,14 @@
+.git
+.forgejo
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+byond
+byond.zip
+node_modules
+__pycache__
+.cache
+.idea
+.vscode

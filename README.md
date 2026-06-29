@@ -1,57 +1,95 @@
 # BYOND
 
-A docker image for building and hosting games made in the BYOND engine.
+Container images for running BYOND games with DreamDaemon and compiling BYOND
+projects with DreamMaker.
+
+The default container behavior is configured with environment variables. You can
+still pass an explicit command after the image name when you want direct access
+to BYOND tools.
 
 ## Tags
 
-### Latest
+| Tag | Description | Example |
+| --- | --- | --- |
+| `latest` | Latest stable BYOND release. | `code.neureka.dev/byond/byond:latest` |
+| `beta` | Latest beta BYOND release. | `code.neureka.dev/byond/byond:beta` |
+| `<major>` | Latest release for a BYOND major version. | `code.neureka.dev/byond/byond:516` |
+| `<major>.<minor>` | Exact BYOND version. | `code.neureka.dev/byond/byond:516.1659` |
 
-The latest stable version of BYOND.
+## Environment
 
-### Version
+| Variable | Default | Mode | Description |
+| --- | --- | --- | --- |
+| `BYOND_MODE` | `host` | all | Runtime mode. Use `host` for DreamDaemon or `compile` for DreamMaker. |
+| `BYOND_DMB` | none | `host` | Path to the compiled `.dmb` file inside the container. |
+| `BYOND_DME` | none | `compile` | Path to the `.dme` project file inside the container. |
+| `BYOND_PORT` | `1337` | `host` | Port passed to `DreamDaemon -ports`. |
+| `BYOND_TRUSTED` | `false` | `host` | Set to `true` to add the DreamDaemon `-trusted` flag. Only `true` and `false` are accepted. |
+| `PUID` | none | all | Optional user ID for the runtime process. Set with `PGID`. |
+| `PGID` | none | all | Optional group ID for the runtime process. Set with `PUID`. |
 
-A specific version of BYOND.
+## Host A Game
 
-## DreamDaemon (Host)
+Mount your game files at `/app/data`, set `BYOND_DMB`, and publish the same port
+as `BYOND_PORT`.
 
-Example usage to host your projects.
-
-### Docker Run
-
-```docker
+```sh
 docker run --detach \
-  --name game \
-  --volume /opt/game:/opt/game \
+  --name byond \
+  --env BYOND_DMB=/app/data/game.dmb \
+  --env BYOND_PORT=1337 \
+  --env BYOND_TRUSTED=false \
+  --volume /opt/game:/app/data \
   --publish 1337:1337 \
   --restart unless-stopped \
-  code.neureka.dev/byond/byond:latest DreamDaemon /opt/game/game.dmb -ports 1337
+  code.neureka.dev/byond/byond:latest
 ```
 
-### Docker Compose
+## Compose
 
-#### docker-compose.yml
+Create `.env` from `.env.example`, adjust the paths and port, then start the
+service.
 
-```docker
+```sh
+docker compose up --detach
+```
+
+The included compose file uses this service shape:
+
+```yaml
 services:
   byond:
     image: code.neureka.dev/byond/byond:latest
-    container_name: "game"
-    command: "DreamDaemon /opt/game/game.dmb -ports 1337"
-    volumes:
-      - /opt/game:/opt/game
+    container_name: byond
+    env_file:
+      - .env
     ports:
-      - 1337:1337
+      - "${BYOND_PORT:-1337}:${BYOND_PORT:-1337}"
+    volumes:
+      - data:/app/data
     restart: unless-stopped
 ```
 
-## DreamMaker (Build)
+## Compile Only
 
-Example usage to build your projects.
+Set `BYOND_MODE=compile` and point `BYOND_DME` at the project file. The container
+runs DreamMaker once and exits.
 
-### Docker Run
-
-```docker
+```sh
 docker run --rm \
-  --volume /opt/game:/opt/game \
-  code.neureka.dev/byond/byond:latest DreamMaker /opt/game/game.dme
+  --env BYOND_MODE=compile \
+  --env BYOND_DME=/app/data/game.dme \
+  --volume /opt/game:/app/data \
+  code.neureka.dev/byond/byond:latest
+```
+
+## Command Overrides
+
+Any command after the image name bypasses `BYOND_MODE` and runs directly after
+the container ownership setup.
+
+```sh
+docker run --rm \
+  --volume /opt/game:/app/data \
+  code.neureka.dev/byond/byond:latest DreamMaker /app/data/game.dme
 ```
