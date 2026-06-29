@@ -3,9 +3,7 @@
 Container images for running BYOND games with DreamDaemon and compiling BYOND
 projects with DreamMaker.
 
-The default container behavior is configured with environment variables. You can
-still pass an explicit command after the image name when you want direct access
-to BYOND tools.
+The default container behavior is configured with environment variables.
 
 ## Tags
 
@@ -54,22 +52,6 @@ service.
 docker compose up --detach
 ```
 
-The included compose file uses this service shape:
-
-```yaml
-services:
-  byond:
-    image: code.neureka.dev/byond/byond:latest
-    container_name: byond
-    env_file:
-      - .env
-    ports:
-      - "${BYOND_PORT:-1337}:${BYOND_PORT:-1337}"
-    volumes:
-      - data:/app/data
-    restart: unless-stopped
-```
-
 ## Compile Only
 
 Set `BYOND_MODE=compile` and point `BYOND_DME` at the project file. The container
@@ -81,15 +63,4 @@ docker run --rm \
   --env BYOND_DME=/app/data/game.dme \
   --volume /opt/game:/app/data \
   code.neureka.dev/byond/byond:latest
-```
-
-## Command Overrides
-
-Any command after the image name bypasses `BYOND_MODE` and runs directly after
-the container ownership setup.
-
-```sh
-docker run --rm \
-  --volume /opt/game:/app/data \
-  code.neureka.dev/byond/byond:latest DreamMaker /app/data/game.dme
 ```
