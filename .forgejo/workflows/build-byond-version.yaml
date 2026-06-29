@@ -21,7 +21,7 @@ jobs:
       version: ${{ inputs.version }}
       context: .
       file: Dockerfile
-      platforms: linux/386
+      platforms: linux/amd64
       existing-tag-behavior: ${{ inputs.force_overwrite && 'overwrite' || 'fail' }}
       push: true
     secrets:

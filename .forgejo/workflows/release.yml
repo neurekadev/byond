@@ -36,9 +36,6 @@ jobs:
           username: ${{ env.REGISTRY_USERNAME }}
           password: ${{ env.REGISTRY_PASSWORD }}
 
-      - name: Set up QEMU
-        uses: actions/docker-setup-qemu@v4
-
       - name: Set up Buildx
         uses: actions/docker-setup-buildx@v4
 
@@ -112,7 +109,7 @@ jobs:
           BYOND_MINOR_VERSION: ${{ steps.stable-version-check.outputs.BYOND_MINOR_VERSION }}
         with:
           context: .
-          platforms: linux/386
+          platforms: linux/amd64
           push: true
           build-args: |
             APP_VERSION=${{ env.BYOND_VERSION }}
@@ -194,7 +191,7 @@ jobs:
           BYOND_MINOR_VERSION: ${{ steps.beta-version-check.outputs.BYOND_MINOR_VERSION }}
         with:
           context: .
-          platforms: linux/386
+          platforms: linux/amd64
           push: true
           build-args: |
             APP_VERSION=${{ env.BYOND_VERSION }}

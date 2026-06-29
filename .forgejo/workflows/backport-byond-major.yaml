@@ -21,7 +21,7 @@ jobs:
       major: ${{ inputs.major }}
       context: .
       file: Dockerfile
-      platforms: linux/386
+      platforms: linux/amd64
       existing-tag-behavior: ${{ inputs.force_overwrite && 'overwrite' || 'skip' }}
       push: true
     secrets:
