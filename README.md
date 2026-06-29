@@ -43,15 +43,6 @@ docker run --detach \
   code.neureka.dev/byond/byond:latest
 ```
 
-## Compose
-
-Create `.env` from `.env.example`, adjust the paths and port, then start the
-service.
-
-```sh
-docker compose up --detach
-```
-
 ## Compile Only
 
 Set `BYOND_MODE=compile` and point `BYOND_DME` at the project file. The container
