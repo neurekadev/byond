@@ -18,7 +18,7 @@ ENV APP_VERSION="${APP_VERSION}" \
 WORKDIR /app
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl gosu libstdc++6 make unzip \
+ && apt-get install -y --no-install-recommends ca-certificates curl gosu libcurl4 libstdc++6 make unzip \
  && curl --fail --location "https://www.byond.com/download/build/${BYOND_MAJOR}/${BYOND_MAJOR}.${BYOND_MINOR}_byond_linux.zip" -o /tmp/byond.zip \
  && unzip /tmp/byond.zip -d /tmp \
  && sed -i 's|install:|&\n\tmkdir -p $(MAN_DIR)/man6|' /tmp/byond/Makefile \
