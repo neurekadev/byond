@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 * * * *"
   workflow_dispatch:
+    inputs:
+      force_overwrite:
+        description: Overwrite existing image tags.
+        required: false
+        default: false
+        type: boolean
 
 env:
   REGISTRY: code.neureka.dev
@@ -77,18 +83,23 @@ jobs:
           BYOND_VERSION: ${{ steps.stable-version-check.outputs.BYOND_VERSION }}
           BYOND_MAJOR_VERSION: ${{ steps.stable-version-check.outputs.BYOND_MAJOR_VERSION }}
           BYOND_MINOR_VERSION: ${{ steps.stable-version-check.outputs.BYOND_MINOR_VERSION }}
+          FORCE_OVERWRITE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_overwrite }}
         run: |
           echo "⏳ Checking if the stable release was already published to the Container Registry..."
           docker manifest inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:${{ env.BYOND_VERSION }}
           if [ $? -eq 0 ]; then
-            echo "✔️ An existing tag was found! A new docker image will not be built."
+            if [ "${FORCE_OVERWRITE}" = "true" ]; then
+              echo "✔️ An existing tag was found! A new docker image will be built because force_overwrite is enabled."
+            else
+              echo "✔️ An existing tag was found! A new docker image will not be built."
+            fi
           else
             echo "❌ An existing tag was not found."
           fi          
 
       - name: Build the stable Docker image and publish to the Container Registry
         uses: actions/docker-build-push@v7
-        if: ${{ steps.stable-binaries-check.outcome == 'success' && steps.stable-release-check.outcome == 'failure' }}
+        if: ${{ steps.stable-binaries-check.outcome == 'success' && (steps.stable-release-check.outcome == 'failure' || (github.event_name == 'workflow_dispatch' && inputs.force_overwrite)) }}
         env:
           BYOND_VERSION: ${{ steps.stable-version-check.outputs.BYOND_VERSION }}
           BYOND_MAJOR_VERSION: ${{ steps.stable-version-check.outputs.BYOND_MAJOR_VERSION }}
@@ -152,18 +163,23 @@ jobs:
           BYOND_VERSION: ${{ steps.beta-version-check.outputs.BYOND_VERSION }}
           BYOND_MAJOR_VERSION: ${{ steps.beta-version-check.outputs.BYOND_MAJOR_VERSION }}
           BYOND_MINOR_VERSION: ${{ steps.beta-version-check.outputs.BYOND_MINOR_VERSION }}
+          FORCE_OVERWRITE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_overwrite }}
         run: |
           echo "⏳ Checking if the beta release was already published to the Container Registry..."
           docker manifest inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE_NAME }}:${{ env.BYOND_VERSION }}
           if [ $? -eq 0 ]; then
-            echo "✔️ An existing tag was found! A new docker image will not be built."
+            if [ "${FORCE_OVERWRITE}" = "true" ]; then
+              echo "✔️ An existing tag was found! A new docker image will be built because force_overwrite is enabled."
+            else
+              echo "✔️ An existing tag was found! A new docker image will not be built."
+            fi
           else
             echo "❌ An existing tag was not found."
           fi          
 
       - name: Build the beta Docker image and publish to the Container Registry
         uses: actions/docker-build-push@v7
-        if: ${{ steps.beta-binaries-check.outcome == 'success' && steps.beta-release-check.outcome == 'failure' }}
+        if: ${{ steps.beta-binaries-check.outcome == 'success' && (steps.beta-release-check.outcome == 'failure' || (github.event_name == 'workflow_dispatch' && inputs.force_overwrite)) }}
         env:
           BYOND_VERSION: ${{ steps.beta-version-check.outputs.BYOND_VERSION }}
           BYOND_MAJOR_VERSION: ${{ steps.beta-version-check.outputs.BYOND_MAJOR_VERSION }}

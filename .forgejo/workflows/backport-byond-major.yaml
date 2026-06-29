@@ -7,6 +7,11 @@ on:
         description: BYOND major version to backport.
         required: true
         type: string
+      force_overwrite:
+        description: Overwrite existing image tags.
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   setup-backport-byond-major:
@@ -17,6 +22,7 @@ jobs:
       context: .
       file: Dockerfile
       platforms: linux/386
+      existing-tag-behavior: ${{ inputs.force_overwrite && 'overwrite' || 'skip' }}
       push: true
     secrets:
       REGISTRY: ${{ secrets.REGISTRY }}
