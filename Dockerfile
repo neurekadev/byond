@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 LABEL org.opencontainers.image.source="https://code.neureka.dev/BYOND/BYOND"
 LABEL org.opencontainers.image.description="A docker image for building and hosting games made in the BYOND engine."
 
@@ -19,7 +19,7 @@ WORKDIR /app
 
 RUN dpkg --add-architecture i386 \
  && apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl make unzip util-linux libc6:i386 libcurl4:i386 libgcc-s1:i386 libstdc++6:i386 \
+ && apt-get install -y --no-install-recommends ca-certificates curl make unzip util-linux libc6:i386 libcurl4t64:i386 libgcc-s1:i386 libstdc++6:i386 \
  && curl --fail --location "https://www.byond.com/download/build/${BYOND_MAJOR}/${BYOND_MAJOR}.${BYOND_MINOR}_byond_linux.zip" -o /tmp/byond.zip \
  && unzip /tmp/byond.zip -d /tmp \
  && sed -i 's|install:|&\n\tmkdir -p $(MAN_DIR)/man6|' /tmp/byond/Makefile \
