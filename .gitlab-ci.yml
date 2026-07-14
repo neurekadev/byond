@@ -1,0 +1,64 @@
+stages:
+  - build
+
+variables:
+  # `docker manifest inspect` is used for the idempotency check.
+  DOCKER_CLI_EXPERIMENTAL: "enabled"
+
+# Only ever create a pipeline for the hourly schedule or a manual "Run pipeline".
+# A normal `git push` (source "push") and merge requests match nothing -> no pipeline,
+# so pushing to main never builds or pushes an image.
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+
+# Shared infra: docker CLI over the runner's mounted /var/run/docker.sock (no dind).
+.docker:
+  stage: build
+  image: docker:cli
+  before_script:
+    - apk add --no-cache curl
+    # Registry auth: REGISTRY_TOKEN(+REGISTRY_USER) override else the built-in job token.
+    - |
+      REG_USER="${REGISTRY_USER:-$CI_REGISTRY_USER}"
+      REG_PASS="${REGISTRY_TOKEN:-$CI_REGISTRY_PASSWORD}"
+      echo "$REG_PASS" | docker login "$CI_REGISTRY" -u "$REG_USER" --password-stdin
+
+# Hourly / manual release: latest stable release.
+release-stable:
+  extends: .docker
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web" && $VERSION == null && $MAJOR == null'
+  script:
+    - sh ci/build.sh --channel stable --floating-tags latest --on-existing skip --on-missing skip
+
+# Hourly / manual release: latest beta release. Runs after stable so that, when stable and
+# beta share a major, beta wins the shared :<major> tag (matches the old stable-then-beta order).
+release-beta:
+  extends: .docker
+  needs: ["release-stable"]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web" && $VERSION == null && $MAJOR == null'
+  script:
+    - sh ci/build.sh --channel beta --floating-tags beta --on-existing skip --on-missing skip
+
+# Manual: build one explicit full version. Run pipeline with VERSION=516.1659.
+build-byond-version:
+  extends: .docker
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web" && $VERSION'
+  script:
+    - sh ci/build.sh --version "$VERSION" --on-existing fail
+
+# Manual: backport a major (newest minor auto-resolved). Run pipeline with MAJOR=515
+# (optionally BACKPORT_MINOR=1647 to pin the minor).
+backport-byond-major:
+  extends: .docker
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web" && $MAJOR'
+  script:
+    - sh ci/build.sh --major "$MAJOR" --on-existing skip

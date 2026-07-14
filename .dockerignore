@@ -1,5 +1,6 @@
 .git
-.forgejo
+.gitlab-ci.yml
+ci
 .env
 .env.*
 !.env.example
