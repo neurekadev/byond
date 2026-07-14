@@ -33,12 +33,8 @@ Set `MAJOR` to the BYOND major version:
 It finds the newest published build for that major, then pushes `:<full>` (e.g. `:515.1647`)
 and `:515`. Versions that already exist are skipped.
 
-To build an exact older build instead of the newest, also set `BACKPORT_MINOR`:
-
-| Variable | Value |
-| --- | --- |
-| `MAJOR` | `515` |
-| `BACKPORT_MINOR` | `1600` |
+To build an exact older build instead of the newest, use `VERSION` (see "Build a specific
+version" above).
 
 ## Variables
 
@@ -46,7 +42,7 @@ To build an exact older build instead of the newest, also set `BACKPORT_MINOR`:
 | --- | --- | --- | --- |
 | `VERSION` | build a specific version | Full `major.minor` version to build. | `516.1659` |
 | `MAJOR` | backport a major | Major version to build (newest minor is auto-detected). | `515` |
-| `BACKPORT_MINOR` | backport a major | Pin an exact minor instead of auto-detecting. | `1600` |
 | `FORCE_OVERWRITE` | either | Rebuild and overwrite a tag that already exists. | `true` |
 
-> Note: these jobs never move the `latest` or `beta` tags — only the hourly release does that.
+> [!NOTE]
+> These jobs never move the `latest` or `beta` tags — only the hourly release does that.

@@ -18,7 +18,6 @@
 # Environment:
 #   CI_REGISTRY_IMAGE   e.g. registry.neureka.dev/byond/byond   (required)
 #   FORCE_OVERWRITE     "true" promotes --on-existing to overwrite (default: false).
-#   BACKPORT_MINOR      Optional explicit minor for --major mode (skips listing resolution).
 set -eu
 
 VERSION_URL="https://secure.byond.com/download/version.txt"
@@ -46,23 +45,19 @@ resolve_channel_version() {
 # --- Backport minor resolution --------------------------------------------
 # Resolve the newest published minor for a given major from BYOND's build-directory
 # autoindex. A single request only: BYOND is behind Cloudflare and bursts of requests
-# trip rate-limit error 1015, so there is deliberately no downward-probe loop. Pass
-# BACKPORT_MINOR to bypass this entirely. Swap this one function to change the strategy.
+# trip rate-limit error 1015, so there is deliberately no downward-probe loop. Swap this
+# one function to change the strategy. To build an exact older minor, use --version instead.
 # $1 = major -> echoes the minor.
 resolve_backport_minor() {
   _major="$1"
-  if [ -n "${BACKPORT_MINOR:-}" ]; then
-    printf '%s' "$BACKPORT_MINOR"
-    return 0
-  fi
   _listing=$(curl -fsSL --max-time 30 "${BUILD_URL}/${_major}/") \
-    || die "Could not fetch the build listing for major ${_major}. Pass BACKPORT_MINOR to pin it."
+    || die "Could not fetch the build listing for major ${_major}. Build it explicitly with the build-byond-version job (VERSION=<major>.<minor>)."
   _minor=$(printf '%s\n' "$_listing" \
     | grep -oE "${_major}\.[0-9]+_byond_linux\.zip" \
     | grep -oE '\.[0-9]+_' | tr -d '._' \
     | sort -n | tail -n1)
   [ -n "$_minor" ] \
-    || die "No Linux builds found for major ${_major} in the listing. Pass BACKPORT_MINOR to pin it."
+    || die "No Linux builds found for major ${_major} in the listing. Build it explicitly with the build-byond-version job (VERSION=<major>.<minor>)."
   printf '%s' "$_minor"
 }
 # --------------------------------------------------------------------------

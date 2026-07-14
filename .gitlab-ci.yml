@@ -54,8 +54,7 @@ build-byond-version:
   script:
     - sh ci/build.sh --version "$VERSION" --on-existing fail
 
-# Manual: backport a major (newest minor auto-resolved). Run pipeline with MAJOR=515
-# (optionally BACKPORT_MINOR=1647 to pin the minor).
+# Manual: backport a major (newest published minor auto-resolved). Run pipeline with MAJOR=515.
 backport-byond-major:
   extends: .docker
   rules:
