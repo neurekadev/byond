@@ -84,20 +84,16 @@ build_and_push() {
     _tag_args="${_tag_args} -t ${_img}:${_t}"
   done
 
-  log "Building ${_img} (version=${_full}, major=${_major}, minor=${_minor}); tags:${_tag_names}"
+  log "Building and pushing ${_img} (version=${_full}, major=${_major}, minor=${_minor}); tags:${_tag_names}"
   # shellcheck disable=SC2086
-  docker build \
+  docker buildx build \
     --pull \
+    --push \
     --build-arg "APP_VERSION=${_full}" \
     --build-arg "BYOND_MAJOR=${_major}" \
     --build-arg "BYOND_MINOR=${_minor}" \
     $_tag_args \
     .
-
-  for _t in $_tag_names; do
-    log "Pushing ${_img}:${_t}"
-    docker push "${_img}:${_t}"
-  done
 }
 
 MODE=""; MODE_ARG=""; FLOATING_TAGS=""; ON_EXISTING="skip"; ON_MISSING="fail"
