@@ -1,5 +1,5 @@
 FROM ubuntu:24.04
-LABEL org.opencontainers.image.source="https://code.neureka.dev/BYOND/BYOND"
+LABEL org.opencontainers.image.source="https://github.com/neurekadev/byond"
 LABEL org.opencontainers.image.description="A docker image for building and hosting games made in the BYOND engine."
 
 ARG APP_VERSION

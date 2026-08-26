@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/Los_Angeles
+    assignees:
+      - neurekadev
+    reviewers:
+      - neurekadev
+    commit-message:
+      prefix: build(deps)
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/Los_Angeles
+    assignees:
+      - neurekadev
+    reviewers:
+      - neurekadev
+    commit-message:
+      prefix: build(deps)

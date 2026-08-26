@@ -1,5 +1,5 @@
 .git
-.gitlab-ci.yml
+.github
 ci
 .env
 .env.*

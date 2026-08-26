@@ -9,10 +9,10 @@ The default container behavior is configured with environment variables.
 
 | Tag | Description | Example |
 | --- | --- | --- |
-| `latest` | Latest stable BYOND release. | `registry.neureka.dev/byond/byond:latest` |
-| `beta` | Latest beta BYOND release. | `registry.neureka.dev/byond/byond:beta` |
-| `<major>` | Latest release for a BYOND major version. | `registry.neureka.dev/byond/byond:516` |
-| `<major>.<minor>` | Exact BYOND version. | `registry.neureka.dev/byond/byond:516.1659` |
+| `latest` | Latest stable BYOND release. | `ghcr.io/neurekadev/byond:latest` |
+| `beta` | Latest beta BYOND release. | `ghcr.io/neurekadev/byond:beta` |
+| `<major>` | Latest release for a BYOND major version. | `ghcr.io/neurekadev/byond:516` |
+| `<major>.<minor>` | Exact BYOND version. | `ghcr.io/neurekadev/byond:516.1659` |
 
 ## Environment
 
@@ -40,7 +40,7 @@ docker run --detach \
   --volume /opt/game:/app/data \
   --publish 1337:1337 \
   --restart unless-stopped \
-  registry.neureka.dev/byond/byond:latest
+  ghcr.io/neurekadev/byond:latest
 ```
 
 ## Compile Only
@@ -53,5 +53,5 @@ docker run --rm \
   --env BYOND_MODE=compile \
   --env BYOND_DME=/app/data/game.dme \
   --volume /opt/game:/app/data \
-  registry.neureka.dev/byond/byond:latest
+  ghcr.io/neurekadev/byond:latest
 ```

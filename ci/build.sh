@@ -16,8 +16,9 @@
 #                                       Default: fail.
 #
 # Environment:
-#   CI_REGISTRY_IMAGE   e.g. registry.neureka.dev/byond/byond   (required)
-#   FORCE_OVERWRITE     "true" promotes --on-existing to overwrite (default: false).
+#   REGISTRY_IMAGE       e.g. ghcr.io/neurekadev/byond   (required)
+#   BUILD_METADATA_FILE  Optional path for Docker Buildx result metadata.
+#   FORCE_OVERWRITE      "true" promotes --on-existing to overwrite (default: false).
 set -eu
 
 VERSION_URL="https://secure.byond.com/download/version.txt"
@@ -51,13 +52,13 @@ resolve_channel_version() {
 resolve_backport_minor() {
   _major="$1"
   _listing=$(curl -fsSL --max-time 30 "${BUILD_URL}/${_major}/") \
-    || die "Could not fetch the build listing for major ${_major}. Build it explicitly with the build-byond-version job (VERSION=<major>.<minor>)."
+    || die "Could not fetch the build listing for major ${_major}. Run CI with target=version and value=<major>.<minor>."
   _minor=$(printf '%s\n' "$_listing" \
     | grep -oE "${_major}\.[0-9]+_byond_linux\.zip" \
     | grep -oE '\.[0-9]+_' | tr -d '._' \
     | sort -n | tail -n1)
   [ -n "$_minor" ] \
-    || die "No Linux builds found for major ${_major} in the listing. Build it explicitly with the build-byond-version job (VERSION=<major>.<minor>)."
+    || die "No Linux builds found for major ${_major} in the listing. Run CI with target=version and value=<major>.<minor>."
   printf '%s' "$_minor"
 }
 # --------------------------------------------------------------------------
@@ -68,7 +69,7 @@ tag_exists() { docker manifest inspect "$1" >/dev/null 2>&1; }
 # $1 full, $2 major, $3 minor, $4 extra floating tags (csv).
 build_and_push() {
   _full="$1"; _major="$2"; _minor="$3"; _extra="$4"
-  _img="${CI_REGISTRY_IMAGE:?CI_REGISTRY_IMAGE is required}"
+  _img="${REGISTRY_IMAGE:?REGISTRY_IMAGE is required}"
 
   _tag_names="${_full} ${_major}"
   if [ -n "$_extra" ]; then
@@ -79,21 +80,21 @@ build_and_push() {
     IFS=$_o
   fi
 
-  _tag_args=""
-  for _t in $_tag_names; do
-    _tag_args="${_tag_args} -t ${_img}:${_t}"
-  done
-
   log "Building and pushing ${_img} (version=${_full}, major=${_major}, minor=${_minor}); tags:${_tag_names}"
-  # shellcheck disable=SC2086
-  docker buildx build \
+  set -- docker buildx build \
     --pull \
     --push \
     --build-arg "APP_VERSION=${_full}" \
     --build-arg "BYOND_MAJOR=${_major}" \
-    --build-arg "BYOND_MINOR=${_minor}" \
-    $_tag_args \
-    .
+    --build-arg "BYOND_MINOR=${_minor}"
+  if [ -n "${BUILD_METADATA_FILE:-}" ]; then
+    set -- "$@" --metadata-file "$BUILD_METADATA_FILE"
+  fi
+  for _t in $_tag_names; do
+    set -- "$@" -t "${_img}:${_t}"
+  done
+  set -- "$@" .
+  "$@"
 }
 
 MODE=""; MODE_ARG=""; FLOATING_TAGS=""; ON_EXISTING="skip"; ON_MISSING="fail"
@@ -130,7 +131,7 @@ esac
 MAJOR=$(printf '%s' "$FULL" | cut -d. -f1)
 MINOR=$(printf '%s' "$FULL" | cut -d. -f2)
 [ -n "$MAJOR" ] && [ -n "$MINOR" ] && [ "$MAJOR" != "$FULL" ] || die "Malformed version: '${FULL}'"
-IMAGE="${CI_REGISTRY_IMAGE:?CI_REGISTRY_IMAGE is required}"
+IMAGE="${REGISTRY_IMAGE:?REGISTRY_IMAGE is required}"
 log "Resolved BYOND version ${FULL} (major=${MAJOR}, minor=${MINOR})."
 
 # 1) Verify the Linux binaries are published.

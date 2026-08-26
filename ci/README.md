@@ -1,48 +1,56 @@
 # Building images manually
 
-Stable and beta images build automatically every hour. Use the manual jobs below when you
-need a **specific version** or want to **backport an older major**.
+Stable and beta images build automatically every hour. Use the manual workflow when you
+need a **specific version**, want to **backport an older major**, or need to rerun the
+latest stable and beta release build.
 
 ## How to run
 
-In GitLab go to **CI/CD → Pipelines → Run pipeline** (branch `main`), add the variable for
-the job you want, and click **Run pipeline**.
+In GitHub, go to **Actions → CI → Run workflow** on branch `main`. Choose a `target`,
+provide its `value` when required, and select **Run workflow**.
 
-Set only **one** of `VERSION` or `MAJOR` per run.
+| Target | Value | Result |
+| --- | --- | --- |
+| `release` | Leave empty. | Builds the latest stable and beta releases. |
+| `version` | Full version, such as `516.1659`. | Builds one exact release. |
+| `major` | Major version, such as `515`. | Builds the newest published minor for that major. |
 
 ## Build a specific version
 
-Set `VERSION` to the full BYOND version:
+Choose `version` and set `value` to the full BYOND version:
 
-| Variable | Value |
+| Input | Value |
 | --- | --- |
-| `VERSION` | `516.1659` |
+| `target` | `version` |
+| `value` | `516.1659` |
 
-Pushes `registry.neureka.dev/byond/byond:516.1659` and `:516`.
+Pushes `ghcr.io/neurekadev/byond:516.1659` and `:516`.
 
-If that version already exists it fails on purpose — add `FORCE_OVERWRITE=true` to rebuild it.
+If that version already exists it fails on purpose. Enable `force_overwrite` to rebuild it.
 
 ## Backport an older major
 
-Set `MAJOR` to the BYOND major version:
+Choose `major` and set `value` to the BYOND major version:
 
-| Variable | Value |
+| Input | Value |
 | --- | --- |
-| `MAJOR` | `515` |
+| `target` | `major` |
+| `value` | `515` |
 
 It finds the newest published build for that major, then pushes `:<full>` (e.g. `:515.1647`)
 and `:515`. Versions that already exist are skipped.
 
-To build an exact older build instead of the newest, use `VERSION` (see "Build a specific
-version" above).
+To build an exact older build instead of the newest, use the `version` target (see "Build
+a specific version" above).
 
-## Variables
+## Inputs
 
-| Variable | Job | Description | Example |
+| Input | Target | Description | Example |
 | --- | --- | --- | --- |
-| `VERSION` | build a specific version | Full `major.minor` version to build. | `516.1659` |
-| `MAJOR` | backport a major | Major version to build (newest minor is auto-detected). | `515` |
-| `FORCE_OVERWRITE` | either | Rebuild and overwrite a tag that already exists. | `true` |
+| `target` | all | Build mode: `release`, `version`, or `major`. | `version` |
+| `value` | `version` or `major` | Full version or major number to build. | `516.1659` |
+| `force_overwrite` | all | Rebuild and overwrite a tag that already exists. | `true` |
 
 > [!NOTE]
-> These jobs never move the `latest` or `beta` tags — only the hourly release does that.
+> Exact-version and major builds never move the `latest` or `beta` tags. Every newly
+> built image receives a GitHub build-provenance attestation.

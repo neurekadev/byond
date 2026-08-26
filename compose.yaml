@@ -1,6 +1,6 @@
 services:
   byond:
-    image: registry.neureka.dev/byond/byond:latest
+    image: ghcr.io/neurekadev/byond:latest
     container_name: byond
     env_file:
       - .env
