@@ -23,7 +23,9 @@
 set -eu
 
 VERSION_URL="https://secure.byond.com/download/version.txt"
-BUILD_URL="https://www.byond.com/download/build"
+# BYOND's archive CDN rejects HTTPS requests from GitHub Actions (HTTP 403),
+# while the HTTP endpoint serves the same Linux archive successfully.
+BUILD_URL="http://www.byond.com/download/build"
 
 log() { printf '%s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
