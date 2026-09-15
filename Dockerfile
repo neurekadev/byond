@@ -17,10 +17,12 @@ ENV APP_VERSION="${APP_VERSION}" \
 
 WORKDIR /app
 
+# BYOND's archive CDN rejects HTTPS requests from GitHub Actions, while its
+# HTTP endpoint serves the Linux archive used by this image.
 RUN dpkg --add-architecture i386 \
  && apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl make unzip util-linux libc6:i386 libcurl4t64:i386 libgcc-s1:i386 libstdc++6:i386 \
- && curl --fail --location "https://www.byond.com/download/build/${BYOND_MAJOR}/${BYOND_MAJOR}.${BYOND_MINOR}_byond_linux.zip" -o /tmp/byond.zip \
+ && curl --fail --location "http://www.byond.com/download/build/${BYOND_MAJOR}/${BYOND_MAJOR}.${BYOND_MINOR}_byond_linux.zip" -o /tmp/byond.zip \
  && unzip /tmp/byond.zip -d /tmp \
  && sed -i 's|install:|&\n\tmkdir -p $(MAN_DIR)/man6|' /tmp/byond/Makefile \
  && make -C /tmp/byond install \
