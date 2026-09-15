@@ -12,7 +12,8 @@
 #                           in addition to these.
 #   --on-existing skip|fail|overwrite   Policy when <full> already exists in the registry.
 #                                       Default: skip.
-#   --on-missing  skip|fail             Policy when the Linux binaries are not published yet.
+#   --on-missing  skip|fail             Policy when the Linux archive returns HTTP 404.
+#                                       Other availability-probe failures always fail.
 #                                       Default: fail.
 #
 # Environment:
@@ -27,11 +28,16 @@ BUILD_URL="https://www.byond.com/download/build"
 log() { printf '%s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
 
-http_status() { curl -o /dev/null -s -I -L --max-time 30 -w '%{http_code}' "$1"; }
-
-# $1 major, $2 minor -> 0 if the Linux release zip is published (HTTP 200).
-binaries_exist() {
-  [ "$(http_status "${BUILD_URL}/$1/$1.$2_byond_linux.zip")" = "200" ]
+# $1 URL -> echoes the final HTTP status from a one-byte ranged GET.
+# A GET matches the Dockerfile's actual download request and avoids relying on
+# servers/CDNs treating HEAD the same way as GET.
+http_status() {
+  _status=$(curl -o /dev/null -sS -L --range 0-0 --max-time 30 -w '%{http_code}\n' "$1") || {
+    _curl_status=$?
+    printf '%s\n' "$_status" | sed -n '$p'
+    return "$_curl_status"
+  }
+  printf '%s\n' "$_status" | sed -n '$p'
 }
 
 # $1 = stable|beta -> echoes the full version (empty if that channel is not published yet;
@@ -134,14 +140,29 @@ MINOR=$(printf '%s' "$FULL" | cut -d. -f2)
 IMAGE="${REGISTRY_IMAGE:?REGISTRY_IMAGE is required}"
 log "Resolved BYOND version ${FULL} (major=${MAJOR}, minor=${MINOR})."
 
-# 1) Verify the Linux binaries are published.
-if ! binaries_exist "$MAJOR" "$MINOR"; then
-  case "$ON_MISSING" in
-    skip) log "No Linux binaries for ${FULL} yet; on-missing=skip -> nothing to do."; exit 0 ;;
-    *)    die "No Linux binaries for ${FULL} (HTTP != 200)." ;;
-  esac
+# 1) Verify the Linux archive is published and downloadable.
+LINUX_URL="${BUILD_URL}/${MAJOR}/${MAJOR}.${MINOR}_byond_linux.zip"
+if LINUX_STATUS=$(http_status "$LINUX_URL"); then
+  :
+else
+  _curl_status=$?
+  die "Could not verify Linux archive for ${FULL}: GET ${LINUX_URL} failed (HTTP ${LINUX_STATUS:-000}; curl exit ${_curl_status})."
 fi
-log "Linux binaries confirmed for ${FULL}."
+
+case "$LINUX_STATUS" in
+  200|206)
+    log "Linux archive confirmed for ${FULL} (download probe HTTP ${LINUX_STATUS})."
+    ;;
+  404)
+    case "$ON_MISSING" in
+      skip) log "Linux archive for ${FULL} is not published yet (HTTP 404); on-missing=skip -> nothing to do."; exit 0 ;;
+      *)    die "Linux archive for ${FULL} is not published (HTTP 404)." ;;
+    esac
+    ;;
+  *)
+    die "Could not verify Linux archive for ${FULL}: GET ${LINUX_URL} returned HTTP ${LINUX_STATUS}."
+    ;;
+esac
 
 # 2) Idempotency: skip/fail/overwrite if the <full> tag already exists.
 if tag_exists "${IMAGE}:${FULL}"; then
