@@ -23,18 +23,27 @@
 set -eu
 
 VERSION_URL="https://secure.byond.com/download/version.txt"
-# BYOND's archive CDN rejects HTTPS requests from GitHub Actions (HTTP 403),
-# while the HTTP endpoint serves the same Linux archive successfully.
+# BYOND's archive CDN sits behind Cloudflare, which serves automated-looking
+# requests from datacenter IPs (e.g. GitHub Actions runners) a browser
+# verification challenge (HTTP 403, "Just a moment..."). Verified from a real
+# runner: HTTPS is challenged regardless of User-Agent (curl's TLS fingerprint
+# alone is enough), while plain HTTP passes when it carries a browser
+# User-Agent. version.txt is not challenged and needs no special headers.
 BUILD_URL="http://www.byond.com/download/build"
+BYOND_UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
 log() { printf '%s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
 
-# $1 URL -> echoes the final HTTP status from a one-byte ranged GET.
-# A GET matches the Dockerfile's actual download request and avoids relying on
-# servers/CDNs treating HEAD the same way as GET.
+# $1 URL -> echoes the final HTTP status from a two-byte ranged GET and leaves
+# the response body (the first two bytes, "PK" for a zip) in $HTTP_BODY_FILE.
+# A ranged GET matches the Dockerfile's actual download request and avoids
+# relying on servers/CDNs treating HEAD the same way as GET.
+HTTP_BODY_FILE=""
 http_status() {
-  _status=$(curl -o /dev/null -sS -L --range 0-0 --max-time 30 -w '%{http_code}\n' "$1") || {
+  HTTP_BODY_FILE=$(mktemp "${TMPDIR:-/tmp}/byond-probe.XXXXXX")
+  _status=$(curl -o "$HTTP_BODY_FILE" -sS -L --range 0-1 --max-time 30 \
+    --user-agent "$BYOND_UA" -w '%{http_code}\n' "$1") || {
     _curl_status=$?
     printf '%s\n' "$_status" | sed -n '$p'
     return "$_curl_status"
@@ -59,7 +68,7 @@ resolve_channel_version() {
 # $1 = major -> echoes the minor.
 resolve_backport_minor() {
   _major="$1"
-  _listing=$(curl -fsSL --max-time 30 "${BUILD_URL}/${_major}/") \
+  _listing=$(curl -fsSL --max-time 30 --user-agent "$BYOND_UA" "${BUILD_URL}/${_major}/") \
     || die "Could not fetch the build listing for major ${_major}. Run CI with target=version and value=<major>.<minor>."
   _minor=$(printf '%s\n' "$_listing" \
     | grep -oE "${_major}\.[0-9]+_byond_linux\.zip" \
@@ -94,7 +103,8 @@ build_and_push() {
     --push \
     --build-arg "APP_VERSION=${_full}" \
     --build-arg "BYOND_MAJOR=${_major}" \
-    --build-arg "BYOND_MINOR=${_minor}"
+    --build-arg "BYOND_MINOR=${_minor}" \
+    --build-arg "BYOND_UA=${BYOND_UA}"
   if [ -n "${BUILD_METADATA_FILE:-}" ]; then
     set -- "$@" --metadata-file "$BUILD_METADATA_FILE"
   fi
@@ -153,6 +163,11 @@ fi
 
 case "$LINUX_STATUS" in
   200|206)
+    # A 2xx from the CDN can still be a challenge page (e.g. after a WAF rule
+    # change); only proceed when the body actually starts with zip magic.
+    if [ "$(head -c 2 "$HTTP_BODY_FILE" 2>/dev/null)" != "PK" ]; then
+      die "Probe for ${FULL} returned HTTP ${LINUX_STATUS} but no zip data; the CDN is blocking this runner."
+    fi
     log "Linux archive confirmed for ${FULL} (download probe HTTP ${LINUX_STATUS})."
     ;;
   404)
@@ -165,6 +180,7 @@ case "$LINUX_STATUS" in
     die "Could not verify Linux archive for ${FULL}: GET ${LINUX_URL} returned HTTP ${LINUX_STATUS}."
     ;;
 esac
+rm -f "$HTTP_BODY_FILE"
 
 # 2) Idempotency: skip/fail/overwrite if the <full> tag already exists.
 if tag_exists "${IMAGE}:${FULL}"; then
