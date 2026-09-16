@@ -12,7 +12,9 @@
 #                           in addition to these.
 #   --on-existing skip|fail|overwrite   Policy when <full> already exists in the registry.
 #                                       Default: skip.
-#   --on-missing  skip|fail             Policy when the Linux archive returns HTTP 404.
+#   --on-missing  skip|fail             Policy when the Linux archive is not
+#                                       published yet (BYOND's CDN answers
+#                                       HTTP 403 or 404 for missing archives).
 #                                       Other availability-probe failures always fail.
 #                                       Default: fail.
 #
@@ -35,20 +37,41 @@ BYOND_UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)
 log() { printf '%s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
 
-# $1 URL -> echoes the final HTTP status from a two-byte ranged GET and leaves
-# the response body (the first two bytes, "PK" for a zip) in $HTTP_BODY_FILE.
+# $1 URL -> echoes "<status> <class>" where <status> is the final HTTP status
+# from a 128-byte ranged GET and <class> is one of:
+#   zip     2xx whose body starts with zip magic ("PK") — the archive itself
+#   missing HTTP 403 carrying the origin's Apache "403 Forbidden" page, which
+#           is how BYOND's CDN answers for archives that are not published
+#   body    anything else (e.g. a Cloudflare challenge page) — treat as blocked
 # A ranged GET matches the Dockerfile's actual download request and avoids
-# relying on servers/CDNs treating HEAD the same way as GET.
-HTTP_BODY_FILE=""
+# relying on servers/CDNs treating HEAD the same way as GET. The verdict is
+# echoed rather than stored in a variable because the function runs in a
+# command-substitution subshell.
 http_status() {
-  HTTP_BODY_FILE=$(mktemp "${TMPDIR:-/tmp}/byond-probe.XXXXXX")
-  _status=$(curl -o "$HTTP_BODY_FILE" -sS -L --range 0-1 --max-time 30 \
+  _body_file=$(mktemp "${TMPDIR:-/tmp}/byond-probe.XXXXXX")
+  _status=$(curl -o "$_body_file" -sS -L --range 0-127 --max-time 30 \
     --user-agent "$BYOND_UA" -w '%{http_code}\n' "$1") || {
     _curl_status=$?
-    printf '%s\n' "$_status" | sed -n '$p'
+    rm -f "$_body_file"
+    printf '%s body\n' "$(printf '%s\n' "$_status" | sed -n '$p')"
     return "$_curl_status"
   }
-  printf '%s\n' "$_status" | sed -n '$p'
+  _status=$(printf '%s\n' "$_status" | sed -n '$p')
+  _class=body
+  case "$_status" in
+    200|206)
+      if [ "$(head -c 2 "$_body_file" 2>/dev/null)" = "PK" ]; then
+        _class=zip
+      fi
+      ;;
+    403)
+      if head -c 128 "$_body_file" 2>/dev/null | grep -q "403 Forbidden"; then
+        _class=missing
+      fi
+      ;;
+  esac
+  rm -f "$_body_file"
+  printf '%s %s\n' "$_status" "$_class"
 }
 
 # $1 = stable|beta -> echoes the full version (empty if that channel is not published yet;
@@ -154,33 +177,36 @@ log "Resolved BYOND version ${FULL} (major=${MAJOR}, minor=${MINOR})."
 
 # 1) Verify the Linux archive is published and downloadable.
 LINUX_URL="${BUILD_URL}/${MAJOR}/${MAJOR}.${MINOR}_byond_linux.zip"
-if LINUX_STATUS=$(http_status "$LINUX_URL"); then
-  :
+if PROBE=$(http_status "$LINUX_URL"); then
+  LINUX_STATUS=${PROBE%% *}
+  LINUX_CLASS=${PROBE#* }
 else
   _curl_status=$?
-  die "Could not verify Linux archive for ${FULL}: GET ${LINUX_URL} failed (HTTP ${LINUX_STATUS:-000}; curl exit ${_curl_status})."
+  die "Could not verify Linux archive for ${FULL}: GET ${LINUX_URL} failed (HTTP ${PROBE%% *}; curl exit ${_curl_status})."
 fi
 
 case "$LINUX_STATUS" in
   200|206)
     # A 2xx from the CDN can still be a challenge page (e.g. after a WAF rule
     # change); only proceed when the body actually starts with zip magic.
-    if [ "$(head -c 2 "$HTTP_BODY_FILE" 2>/dev/null)" != "PK" ]; then
+    if [ "$LINUX_CLASS" != "zip" ]; then
       die "Probe for ${FULL} returned HTTP ${LINUX_STATUS} but no zip data; the CDN is blocking this runner."
     fi
     log "Linux archive confirmed for ${FULL} (download probe HTTP ${LINUX_STATUS})."
     ;;
-  404)
+  403|404)
+    if [ "$LINUX_CLASS" != "missing" ]; then
+      die "Could not verify Linux archive for ${FULL}: GET ${LINUX_URL} returned HTTP ${LINUX_STATUS}; the CDN is blocking this runner."
+    fi
     case "$ON_MISSING" in
-      skip) log "Linux archive for ${FULL} is not published yet (HTTP 404); on-missing=skip -> nothing to do."; exit 0 ;;
-      *)    die "Linux archive for ${FULL} is not published (HTTP 404)." ;;
+      skip) log "Linux archive for ${FULL} is not published yet (HTTP ${LINUX_STATUS}); on-missing=skip -> nothing to do."; exit 0 ;;
+      *)    die "Linux archive for ${FULL} is not published (HTTP ${LINUX_STATUS})." ;;
     esac
     ;;
   *)
     die "Could not verify Linux archive for ${FULL}: GET ${LINUX_URL} returned HTTP ${LINUX_STATUS}."
     ;;
 esac
-rm -f "$HTTP_BODY_FILE"
 
 # 2) Idempotency: skip/fail/overwrite if the <full> tag already exists.
 if tag_exists "${IMAGE}:${FULL}"; then
